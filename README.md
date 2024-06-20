@@ -36,6 +36,7 @@ Install a new addon:
 minikube addons enable <addon_name>
 ```
 
+
 ## Kuberantes dashboard
 The Kuberantes dashboard is a practical UI to see al the resources in our cluster. You can find more information about it in the [official guide](https://minikube.sigs.k8s.io/docs/handbook/dashboard/).
 
@@ -102,3 +103,77 @@ kubectl apply -f dashboard-ingress.yaml
 ```
 
 You can finally open a web browser on your local machine and navigate to http://<your-domain-or-ip>. This should bring up the Minikube dashboard.
+
+
+## Docker registry [WIP]
+For the moment, we wont't use the registry for an easier approach. The images are sent to the server with scp and loaded there in the docker instance.
+
+1 - First, build your Docker image locally.
+
+```
+docker build -t my-microservice:latest .
+```
+
+2 - Save the Docker image as a tar file, transfer it to your server, and load it into Minikube.
+
+```
+docker save my-microservice:latest -o my-microservice.tar
+scp my-microservice.tar user@localServerIp:~/my-microservice.tar
+
+# Example
+docker save user-service:latest -o user-service-v0.tar
+scp user-service-v0.tar mayart@192.168.1.200:~/mayart/images/user-service-v0.tar
+```
+
+3 - SSH into your server and load the image into Minikube:
+```
+docker load -i ~/my-microservice.tar
+
+# Example
+docker load < mayart/images/user-service-v0.tar
+```
+
+#### Please remember to use `~/mayart/images` folder
+
+### What's next
+We have a private registry inside our cluster to store our images, thanks to the addon `registry`. 
+The official documentation can be found [here](https://minikube.sigs.k8s.io/docs/handbook/registry/).
+Try to use it or install another thanks to a docker image.
+
+When enabled, the registry addon exposes its port 80 on the minikube’s virtual machine. You can confirm this by:
+```
+$ kubectl get service --namespace kube-system
+NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                  AGE
+kube-dns         ClusterIP   10.96.0.10       <none>        53/UDP,53/TCP,9153/TCP   65m
+metrics-server   ClusterIP   10.97.89.40      <none>        443/TCP                  55m
+registry         ClusterIP   10.103.141.203   <none>        80/TCP,443/TCP           44m
+```
+
+In order to make docker accept pushing images to this registry, we have to redirect port 5000 on the docker virtual machine over to port 5000 on the minikube machine.
+
+In order to make docker accept pushing images to this registry, we have to redirect port 5000 on the docker virtual machine over to port 80 on the minikube registry service. Unfortunately, the docker vm cannot directly see the IP address of the minikube vm. To fix this, you will have to add one more level of redirection.
+
+Use kubectl port-forward to map your local workstation to the minikube vm
+```
+kubectl port-forward --namespace kube-system service/registry 5000:80
+```
+2 - Open another terminal window and set up SSH tunneling:
+```
+ssh -L 8001:127.0.0.1:<PORT> mayart@<SERVER_IP>
+
+# Example
+ssh -L 5000:127.0.0.1:5000 mayart@192.168.1.200
+```
+
+In order to make docker accept pushing images to this registry, we have to redirect port 5000 on the docker virtual machine over to port 80 on the minikube registry service. Unfortunately, the docker vm cannot directly see the IP address of the minikube vm. To fix this, you will have to add one more level of redirection.
+
+Use kubectl port-forward to map your local workstation to the minikube vm
+```
+kubectl port-forward --namespace kube-system service/registry 5000:80
+```
+
+Now it’s possible to push images to the minikube registry (to be tested yet):
+```
+docker tag my/image localhost:5000/myimage
+docker push localhost:5000/myimage
+```
