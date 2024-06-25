@@ -1,104 +1,111 @@
 # Cloud
 Cloud configurations for MAYArt.ai deployment in Kubernates.
 
-For semplicity reasons it has been chosen to use [minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download).
-It is easy to install and start with, and it comes with multiple addons to like dashboard, registry and dns.
+For semplicity reasons it has been chosen to use [k3s](https://k3s.io).
+It is easy to install and start with, it is lightweight, it doesn't give all the network problems we had with Minikube.
 
-## Usuful commands
-### Minikube
-Start minikube
-```
-minikube start
-```
 
-Pause Kubernetes without impacting deployed applications:
+## K3s cluster
+### Fresh initialization
+To install the k3s cluster run:
 ```
-minikube pause
-```
+curl -sfL https://get.k3s.io | sh -s - --docker
 
-Unpause a paused instance:
-```
-minikube unpause
-```
+export KUBECONFIG="~/.kube/config:/etc/rancher/k3s/k3s.yaml"
+# or (based on where it is saved)
+export KUBECONFIG=~/k3s.yaml
 
-Halt the cluster:
+sudo chmod ugo+r /etc/rancher/k3s/k3s.yaml
+kubectl get node
 ```
-minikube stop
-```
+This will allow the k3s cluster to use the local Docker daemon for pulling images.
 
-Browse the catalog of easily installed Kubernetes services:
+To restart the cluster:
 ```
-minikube addons list
+sudo systemctl restart k3s
 ```
 
-Install a new addon:
+### Upload new images
+The commands below are used to activate the resources in the cluster and put the images with the tag in the docker registry.
+
+First create the `.tar` from your image in your local:
 ```
-minikube addons enable <addon_name>
+docker save -o user-service.tar user-service
+docker save -o api-gateway.tar api-gateway:v0.1.0
 ```
 
-## Kuberantes dashboard
-The Kuberantes dashboard is a practical UI to see al the resources in our cluster. You can find more information about it in the [official guide](https://minikube.sigs.k8s.io/docs/handbook/dashboard/).
-
-To access the Minikube dashboard from another machine on the same local network, we've to use an ssh tunnel.
-
-1 - First, after connecting to the server with ssh, make sure the Minikube dashboard is running and note the local URL it provides.
-Example:
+Then copy the tar in the server:
 ```
-$ minikube dashboard --url
-🤔  Verifying dashboard health ...
-🚀  Launching proxy ...
-🤔  Verifying proxy health ...
-http://127.0.0.1:36937/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
+scp user-service.tar mayart@192.168.1.200:~/mayart/images/user-service-v1.0.0.tar
+scp api-gateway.tar mayart@192.168.1.200:~/mayart/images/api-gateway-v0.1.0.tar
 ```
 
-2 - Open another terminal window and set up SSH tunneling:
+Finally you can load the images in docker:
 ```
-ssh -L 8001:127.0.0.1:<PORT> mayart@<SERVER_IP>
+docker load -i mayart/images/api-gateway-v0.1.0.tar
+docker load -i mayart/images/user-service-v1.0.0.tar
+docker load -i mayart/images/frontend-v1.0.0.tar
 
-# Example
-ssh -L 8001:127.0.0.1:36937 mayart@192.168.1.200
-```
-
-3 - Access the dashboard by navigating to the provided link:
-```
-http://127.0.0.1:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
+# tag images as in the charts
+docker tag api-gateway api-gateway:v0.1.0
+docker tag user-service user-service:v1.0.0
 ```
 
-### What's next
-In the future it may be considered to create an Ingress to easily access the dashboard.
-
-First enable the addon:
+### Upload new charts
+Copy the charts from the cloud repository:
 ```
-minikube addons enable ingress
+scp -r cloud/charts mayart@192.168.1.200:~/mayart/
 ```
 
-Then create an ingress resource to expose the dashboard service. Create a file named dashboard-ingress.yaml with the following content:
 ```
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: kubernetes-dashboard
-  namespace: kubernetes-dashboard
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - host: <your-domain-or-ip>
-    http:
-      paths:
-      - path: /
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: kubernetes-dashboard
-            port:
-              number: 80
-```
-Replace <your-domain-or-ip> with the IP address of your Ubuntu server or a domain name pointing to it.
-
-Apply the ingress resource in the cluster:
-```
-kubectl apply -f dashboard-ingress.yaml
+# apply charts
+kubectl apply -f mayart/charts/api-gateway/
+kubectl apply -f mayart/charts/user-service/
+kubectl apply -f mayart/charts/frontend/
+kubectl apply -f mayart/charts/image-service/
 ```
 
-You can finally open a web browser on your local machine and navigate to http://<your-domain-or-ip>. This should bring up the Minikube dashboard.
+### Usuful commands
+Check k3s configuration:
+```
+k3s check-config
+```
+
+### Injections to API gateway
+You can simply inject to the API Gateway with Postman or similar and using the IP adress: `http://192.168.1.200:80`.
+
+Pay attention to use the correct REST API endpoint. For example for user-service: `http://192.168.1.200:80/api/v1/users`.
+
+
+## Configuration files
+To load the charts in the nuc server:
+```
+cloud$ scp -r charts mayart@192.168.1.200:~/mayart/
+```
+Look to [docker registry chapter](#docker-registry-wip) for more info.
+
+### Secrets
+In the secret the values must be base64 hashed, for that:
+```
+echo -n '<YOUR_NEW_PASSWORD>' | base64
+```
+
+
+## ArgoCD
+To access to ArgoCD instance go to: `http://192.168.1.200:30276` and access with `admin` and the password retrieved with:
+```
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+## Minio UI
+To accesso to the MinioUI go to: `http://192.168.1.200:32061` and access with the credentials in the `minio-image-config-map.yaml` and `minio-image-secret.yaml`.
+
+Pay attention that at the moment at each minio pod restart, te web ui port changes, thus the above link may not work.
+To fix it retrieve the logs from minio pod:
+```
+kubectl logs <minio-pod-name>
+```
+and then take the webpage port and change it in the minio service accordingly.
+
+## TODO
+- Add config map and inject as an env variable for the api-gateway cors configuration (maybe for the moment even mapping)
