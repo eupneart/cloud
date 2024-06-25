@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-image-config-map
+data:
+  minio-access-key: mykey
+  minio-host: mayart-minio

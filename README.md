@@ -4,11 +4,41 @@ Cloud configurations for MAYArt.ai deployment in Kubernates.
 For semplicity reasons it has been chosen to use [minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download).
 It is easy to install and start with, and it comes with multiple addons to like dashboard, registry and dns.
 
-## Usuful commands
-### Minikube
-Start minikube
+
+## Minikube cluster
+### Fresh start
+To initiate the cluster run:
+```
+minikube start --driver=docker --listen-address=0.0.0.0
+```
+
+The commands below are used to activate the resources in the cluster and put the images with the tag in the minikube docker registry:
+```
+# apply charts
+kubectl apply -f mayart/charts/api-gateway/
+kubectl apply -f mayart/charts/user-service/
+
+# use minikube docker env
+eval $(minikube docker-env)
+
+# load images in docker
+docker load -i mayart/images/api-gateway-v0.1.0.tar
+docker load -i mayart/images/user-service-v1.0.0.tar
+
+# tag images as in the charts
+docker tag api-gateway api-gateway:v0.1.0
+docker tag user-service user-service:v1.0.0
+```
+
+### Usuful commands
+Start minikube (if already initiated):
 ```
 minikube start
+```
+
+Create the alias:
+```
+alias kubectl="minikube kubectl --"
 ```
 
 Pause Kubernetes without impacting deployed applications:
@@ -26,6 +56,11 @@ Halt the cluster:
 minikube stop
 ```
 
+Delete the cluster:
+```
+minikube delete
+```
+
 Browse the catalog of easily installed Kubernetes services:
 ```
 minikube addons list
@@ -34,6 +69,51 @@ minikube addons list
 Install a new addon:
 ```
 minikube addons enable <addon_name>
+```
+
+### Injections to API gateway (remote local connection)
+After ssh to the server, activate the port forwarding:
+```
+kubectl port-forward --address 0.0.0.0 service/api-gateway 8080:80
+```
+
+Now you can inject to the minikube cluster with the ip `http://192.168.1.200:8080`.
+
+#### Injections to API gateway (from nuc server)
+Open ssh
+```
+minikube tunnel
+```
+
+In another window
+```
+$ kubectl get services
+NAME           TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)        AGE
+api-gateway    LoadBalancer   10.96.241.130    10.96.241.130   80:30918/TCP   20h
+```
+
+Then you can:
+```
+curl http://10.96.241.130:80/api/v1/users
+```
+
+Or for POST requests:
+```
+curl -X POST http://10.96.241.130:80/api/v1/use-H 'Content-Type: application/json' "email@test","password": "aVeryStrongPW"}' -H 'Content-Type: application/json'
+```
+
+
+## Configuration files
+To load the charts in the nuc server:
+```
+cloud$ scp -r charts mayart@192.168.1.200:~/mayart/
+```
+Look to [docker registry chapter](#docker-registry-wip) for more info.
+
+### Secrets
+In the secret the values must be base64 hashed, for that:
+```
+echo -n '<YOUR_NEW_PASSWORD>' | base64
 ```
 
 

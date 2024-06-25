@@ -1,0 +1,70 @@
+# ... Deployment YAML definition
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: image-service
+  template:
+    metadata:
+      labels:
+        app: image-service
+    spec:
+      containers:
+        - name: app
+          image: image-service:v0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  name:  postgresql-image-config-map
+                  key: postgresql-server
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name:  postgresql-image-config-map
+                  key: postgresql-database-name
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgresql-image-config-map
+                  key: postgresql-image-username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-image-secret
+                  key: postgresql-user-password
+            - name: MINIO_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: minio-image-config-map
+                  key: minio-host
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name:  minio-image-config-map
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-image-secret
+                  key: minio-secret-key
+---
+# ... Service YAML definition
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-service
+spec:
+  selector:
+    app: image-service
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer

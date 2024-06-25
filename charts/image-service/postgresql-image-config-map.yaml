@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-image-config-map
+data:
+  postgresql-server: mayart-postgresql    # The name of mysql service
+  postgresql-database-name: user_service_db     # The name of the database used by the demo app
+  postgresql-image-username: root     # A new created user for the demo app 
