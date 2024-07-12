@@ -55,9 +55,9 @@ spec:
           ports:
             - containerPort: 9000
           volumeMounts:
-            - name: storage
+            - name: minio-storage
               mountPath: /storage
       volumes:
-        - name: storage
+        - name: minio-storage
           persistentVolumeClaim:
             claimName: minio-pvc
