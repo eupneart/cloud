@@ -12,7 +12,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mayart-postgresql
+  name: db-postgres
 spec:
   selector:
     app: postgresql

@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: app
-          image: image-service:v0.1.0
-          imagePullPolicy: IfNotPresent
+          image: mayartai/image-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
@@ -40,11 +40,16 @@ spec:
                 secretKeyRef:
                   name: postgresql-image-secret
                   key: postgresql-user-password
-            - name: MINIO_HOST
+            - name: MINIO_URL
               valueFrom:
                 configMapKeyRef:
                   name: minio-image-config-map
-                  key: minio-host
+                  key: minio-url
+            - name: MINIO_FILE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: minio-image-config-map
+                  key: minio-url
             - name: MINIO_ACCESS_KEY
               valueFrom:
                 configMapKeyRef:
@@ -55,6 +60,11 @@ spec:
                 secretKeyRef:
                   name: minio-image-secret
                   key: minio-secret-key
+            - name: MINIO_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name:  minio-image-config-map
+                  key: minio-bucket-name
 ---
 # ... Service YAML definition
 apiVersion: v1
