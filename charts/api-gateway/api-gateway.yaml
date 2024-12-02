@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: api-gateway:v0.1.0
+          image: mayartai/api-gateway:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

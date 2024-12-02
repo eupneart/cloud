@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: app
-          image: user-service:v1.0.0
-          imagePullPolicy: IfNotPresent
+          image: mayartai/user-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
