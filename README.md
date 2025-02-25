@@ -95,14 +95,89 @@ helm template my-release ./applications/image-service --values applications/imag
 
 ## ArgoCD
 To access to ArgoCD instance go to: `http://192.168.1.200:30276` and access with `admin` and the password.
+From remote create an ssh tunnel `ssh -L 8090:127.0.0.1:31071 eupneart@nuc.eupneart.com -p 1872`and then go to [localhost:8090](http://localhost:8090).
 
 ArgoCD is set in place to automatically sync new changes in the cluster.
+
+### Installation
+```
+kubectl create ns argocd
+wget https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml -O install.yaml
+kubectl apply -n argocd -f install.yaml
+```
+
+Check if everything is fine:
+```
+kubectl get all -n argocd
+```
+Retrieve the pw for the login:
+```
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+By default ArgoCD svc can be accessed only from port-forwarding:
+```
+kubectl port-forward service/argocd-server 8090:80 -n argocd
+```
+
+The service has been modified as a `NodePort` with:
+```
+kubectl -n argocd edit svc argocd-server
+```
 
 
 ## MinIO UI
 To accesso to the MinIO UI from the local network go to: `http://192.168.1.200:9001` and access with the credentials in the `minio-image-config-map.yaml` and `minio-image-secret.yaml`.
 
 Some useful documentation on how to use MinIO with Kubernates and how to secure it can be found [here](https://min.io/docs/minio/kubernetes/upstream/index.html).
+
+
+## Dashboard
+The web ui dashboard is available with a port forward:
+```
+kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy 8443:443
+```
+
+at: `https://localhost:8443`. 
+To connect follow [this guide](https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md). A sample user with administrative privileges will be created, but in PRD it should be changed with a proper
+
+## Troubleshooting
+### Network errors
+It can came handy to have a pod for injection inside the cluster:
+```
+kubectl run -it --rm debug --image=alpine --restart=Never -- sh
+apk add curl
+curl -v http://frontend-service.default:8080
+```
+
+### Installation issue
+The Dashboard has been installed follwing the official [documentation](https://kubernetes.io/docs/tasks/access-application-cluster/web-ui-dashboard/) with the following commands:
+
+```
+# Add kubernetes-dashboard repository
+helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
+# Deploy a Helm Release named "kubernetes-dashboard" using the kubernetes-dashboard chart
+helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
+```
+
+However `kubernetes-dashboard-kong` pod was stacked in a CrashLoopBackOff as follow:
+
+```
+Defaulted container "proxy" out of: proxy, clear-stale-pid (init)
+Error: could not prepare Kong prefix at /kong_prefix: nginx configuration is invalid (exit code 1):
+nginx: [warn] the "user" directive makes sense only if the master process runs with super-user privileges, ignored in /kong_prefix/nginx.conf:7
+nginx: the configuration file /kong_prefix/nginx.conf syntax is ok
+nginx: [emerg] bind() to [::1]:8444 failed (99: Cannot assign requested address)
+nginx: configuration file /kong_prefix/nginx.conf test failed
+```
+
+To solve this issue, the deployment has been modified:
+
+```
+kubectl -n kubernetes-dashboard edit deployment kubernetes-dashboard-kong
+```
+
+Changing the env variable `KONG_PROXY_LISTEN` from `0.0.0.0:8443 http2 ssl, [::]:8443 http2 ssl` to `0.0.0.0:8443 http2 ssl, 0.0.0.0:8443 http2 ssl`.
 
 
 ## TODOs
