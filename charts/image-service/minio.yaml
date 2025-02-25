@@ -12,7 +12,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mayart-minio
+  name: minio-image-svc
 spec:
   selector:
     app: minio
@@ -21,8 +21,8 @@ spec:
       targetPort: 9000
       protocol: TCP
       name: api
-    - port: 39757
-      targetPort: 39757
+    - port: 9001
+      targetPort: 9001
       protocol: TCP
       name: webui
   type: NodePort
@@ -45,9 +45,11 @@ spec:
       containers:
         - name: minio
           image: minio/minio:latest
+          command:
+            - /bin/bash
+            - -c
           args:
-            - server
-            - /storage
+            - minio server /storage --console-address :9001
           env:
             - name: MINIO_ACCESS_KEY
               valueFrom:
