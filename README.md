@@ -12,7 +12,7 @@ It is easy to install and start with, it is lightweight, it doesn't give all the
   - [Injections to API gateway](#injections-to-api-gateway)
   - [Frontend usage](#frontend-usage)
 - [ArgoCD](#argocd)
-- [Minio UI](#minio-ui)
+- [MinIO UI](#minio-ui)
 - [TODOs](#todos)
 
 
@@ -68,15 +68,10 @@ To access to ArgoCD instance go to: `http://192.168.1.200:30276` and access with
 ArgoCD is set in place to automatically sync new changes in the cluster.
 
 
-## Minio UI
-To accesso to the MinioUI go to: `http://192.168.1.200:32061` and access with the credentials in the `minio-image-config-map.yaml` and `minio-image-secret.yaml`.
+## MinIO UI
+To accesso to the MinIO UI from the local network go to: `http://192.168.1.200:9001` and access with the credentials in the `minio-image-config-map.yaml` and `minio-image-secret.yaml`.
 
-Pay attention that at the moment at each minio pod restart, te web ui port changes, thus the above link may not work.
-To fix it retrieve the logs from minio pod:
-```
-kubectl logs <minio-pod-name>
-```
-and then take the webpage port and change it in the minio service accordingly.
+Some useful documentation on how to use MinIO with Kubernates and how to secure it can be found [here](https://min.io/docs/minio/kubernetes/upstream/index.html).
 
 
 ## TODOs
