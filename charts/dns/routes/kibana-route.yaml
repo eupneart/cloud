@@ -1,0 +1,16 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: kibana-route
+  namespace: kube-logging
+spec:
+  parentRefs:
+  - name: gateway
+    namespace: cloudflare-gateway
+  hostnames:
+  - "kibana.eupneart.com"
+  rules:
+  - backendRefs:
+    - name: kibana
+      namespace: kube-logging
+      port: 5601
