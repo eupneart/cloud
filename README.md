@@ -74,6 +74,21 @@ To accesso to the MinIO UI from the local network go to: `http://192.168.1.200:9
 Some useful documentation on how to use MinIO with Kubernates and how to secure it can be found [here](https://min.io/docs/minio/kubernetes/upstream/index.html).
 
 
+## Monitoring
+At the moment only [Prometheus](https://prometheus.io/) has been installed due to some memory limitations, Graphana will be installed when hardware will be increased.
+```
+export POD_NAME=$(kubectl get pods --namespace kube-prometheus-stack -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace kube-prometheus-stack port-forward $POD_NAME 9091
+```
+
+### Installation
+Since the full pack was too much costly for our limited hardware, we didn't install kube-prometheus-stack yet as suggested in [this guide](https://spacelift.io/blog/prometheus-kubernetes).
+Just Prometheus has been istalled as following:
+```
+helm install prometheus prometheus-community/prometheus --namespace kube-prometheus-stack --create-namespace
+```
+
+
 ## TODOs
 The following are possible ideas to implement:
 - Add config map and inject as an env variable for the api-gateway cors configuration (maybe for the moment even mapping)
