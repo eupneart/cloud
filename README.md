@@ -13,6 +13,10 @@ It is easy to install and start with, it is lightweight, it doesn't give all the
   - [Frontend usage](#frontend-usage)
 - [ArgoCD](#argocd)
 - [MinIO UI](#minio-ui)
+- [Monitoring and alerting](#monitoring-and-alerting)
+  - [TODOs](#todos-1)
+  - [Installation](#installation)
+  - [Usage](#installation)
 - [TODOs](#todos)
 
 
@@ -74,18 +78,51 @@ To accesso to the MinIO UI from the local network go to: `http://192.168.1.200:9
 Some useful documentation on how to use MinIO with Kubernates and how to secure it can be found [here](https://min.io/docs/minio/kubernetes/upstream/index.html).
 
 
-## Monitoring
-At the moment only [Prometheus](https://prometheus.io/) has been installed due to some memory limitations, Graphana will be installed when hardware will be increased.
-```
-export POD_NAME=$(kubectl get pods --namespace kube-prometheus-stack -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
-  kubectl --namespace kube-prometheus-stack port-forward $POD_NAME 9091
-```
+## Monitoring and alerting
+Both [Prometheus](https://prometheus.io/) and [Graphana](https://grafana.com) has been installed from the helm template stack in the `kube-prometheus-stack` namespace.
+
+To enanche the use of Prometheus, it is suggested to add new ServiceMonitor resources with the help of labels and annotations. This will allow to follow up custom resources.
+
+Also costum new Graphana dashboards could be added based on the needs.
+
+### TODOs:
+- Add pv and pvc for prometheus
+- Check kubernates operator (?)
+- Monitor prometheus
 
 ### Installation
-Since the full pack was too much costly for our limited hardware, we didn't install kube-prometheus-stack yet as suggested in [this guide](https://spacelift.io/blog/prometheus-kubernetes).
-Just Prometheus has been istalled as following:
+The full pack has been installed as suggested in [this guide](https://spacelift.io/blog/prometheus-kubernetes):
 ```
-helm install prometheus prometheus-community/prometheus --namespace kube-prometheus-stack --create-namespace
+helm install kube-prometheus-stack \
+  --create-namespace \
+  --namespace kube-prometheus-stack \
+  prometheus-community/kube-prometheus-stack
+```
+
+### Usage
+#### Prometheus
+The Promethes dashboard has not been exposed with the tunnel since it has no password protection. To access to it use port forwarding:
+```
+kubectl port-forward -n kube-prometheus-stack svc/kube-prometheus-stack-prometheus 9090:9090
+```
+
+And then connect to it `localhost:9090`.
+
+The “Expression” input at the top of the screen is where you enter your queries as PromQL expressions. Start typing into the input to reveal autocomplete suggestions for the available metrics.
+
+Try selecting the `node_memory_Active_bytes` metric, which surfaces the memory consumption of each of the Nodes in your cluster. Press the “Execute” button to run your query. The results will be displayed in a table that provides the query’s raw output, thought most metrics are easier to interpret as graphs.
+
+To calculate the percentage of CPU usage across all cores:
+```
+100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+```
+
+#### Graphana
+Graphana can be accessed to the link `graphana.eupneart.com`.
+
+Get Grafana 'admin' user password by running:
+```
+kubectl --namespace kube-prometheus-stack get secrets kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
 ```
 
 
