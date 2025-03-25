@@ -74,6 +74,19 @@ To accesso to the MinIO UI from the local network go to: `http://192.168.1.200:9
 Some useful documentation on how to use MinIO with Kubernates and how to secure it can be found [here](https://min.io/docs/minio/kubernetes/upstream/index.html).
 
 
+## Logging
+A full stack EFK is istalled to have the logs from all over the cluster. This means to have ElasticSearch, FluentD and Kibana. The stack has been installed following the best practices as in [this guide](https://www.digitalocean.com/community/tutorials/how-to-set-up-an-elasticsearch-fluentd-and-kibana-efk-logging-stack-on-kubernetes#prerequisites).
+
+To connect to Kibana UI do a portforward of the pod:
+```
+kubectl port-forward svc/kibana 5601:5601 --namespace=kube-logging
+```
+
+And then go to:
+```
+http://localhost:5601
+```
+
 ## TODOs
 The following are possible ideas to implement:
 - Add config map and inject as an env variable for the api-gateway cors configuration (maybe for the moment even mapping)
