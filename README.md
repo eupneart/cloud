@@ -47,6 +47,16 @@ The secret values must be base64, for that use the following:
 echo -n '<YOUR_NEW_PASSWORD>' | base64
 ```
 
+For debugging network problems between pods and service could be helpfull to use this command:
+```
+kubectl exec -it <profile-service-pod> -- netstat -tlnp
+```
+
+To enter in a pod terminal, use the following:
+```
+kubectl exec -it <pod-name> -- /bin/sh
+```
+
 ## Testing new features
 At the moment in each service we have a CI pipeline that automatically deploy in the docker registry new images at each new merge in the main branch.
 
@@ -55,12 +65,33 @@ However to test, it is suggested to copy-paste the GitHub Action to trigger the 
 To be sure that the latest image is taken, check that the service chart has `imagePullPolicy: Always` and refresh apps from ArgoCD UI or with `kubectl rollout restart deployment/<service-name>`.
 
 ### Injections to API gateway
-You can simply inject to the API Gateway with Postman or similar and using the IP adress: `http://192.168.1.200:80`.
+You can simply inject to the API Gateway with Postman or similar and using the IP adress: `http://192.168.1.200:<api-gateway-svc-port>`.
+Take the port from the service with `kubectl get svc | grep api-gateway`.
+Example:
+```
+kubectl get svc | grep api-gateway
+api-gateway         LoadBalancer   10.43.78.123    <pending>     80:30743/TCP                    9m19s
+http://192.168.1.200:30743
+```
 
 Pay attention to use the correct REST API endpoint. For example for user-service: `http://192.168.1.200:80/api/v1/users`.
 
 ### Frontend usage
-To connect to the web UI simply go to `http://192.168.1.200:32584` from the local network.
+To connect to the web UI simply go to `http://192.168.1.200:<frontend-svc-port>` from the local network.
+Take the port from the service with `kubectl get svc | grep frontend`.
+Example:
+```
+kubectl get svc | grep frontend
+frontend-service    NodePort       10.43.31.87     <none>        80:30414/TCP                    27m
+http://192.168.1.200:30414
+```
+
+## Helm
+To test locally the charts generated with a given value file and generating the files in a directory, run:
+```
+helm template my-release ./applications/profile-service --values /applications/profile-service/values.yaml --output-dir output-dir
+helm template my-release ./applications/image-service --values applications/image-service/values.yaml --output-dir output-dir
+```
 
 ## ArgoCD
 To access to ArgoCD instance go to: `http://192.168.1.200:30276` and access with `admin` and the password.

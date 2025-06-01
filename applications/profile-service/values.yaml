@@ -1,0 +1,126 @@
+common:
+  namespaceOverride: &namespaceOverride ""
+
+  applicationName: &applicationName profile-service
+  dbApplicationName: &dbApplicationName profile-service-db
+
+  labels: &labels
+    group: com.eupneart
+    team: eupneart
+    component: profile-service
+    phase: dev
+
+app:
+  applicationName: *applicationName
+  namespaceOverride: *namespaceOverride
+  labels: *labels
+  deployment:
+    image:
+      repository: "eupneart/profile-service"
+      tag: "latest"
+      pullPolicy: "Always"
+    replicas: 1
+    envFrom:
+      app-cm:
+        type: configmap
+        nameSuffix: app-cm
+      app-secret:
+        type: secret
+        nameSuffix: app-secret
+    ports:
+    - containerPort: 8080
+      name: http
+      protocol: TCP
+    containerSecurityContext:
+      readOnlyRootFilesystem: false
+      runAsNonRoot: false   # should be set to true for production
+    readinessProbe:
+      enabled: true
+      httpGet:
+        path: /actuator/health/readiness
+        port: 8080
+
+  service:
+    enabled: true
+    ports:
+      - port: 80
+        targetPort: 8080
+        protocol: TCP
+        name: http
+
+  configMap:
+    enabled: true
+    files:
+      app-cm:
+        DB_SERVER: profile-service-db    # The name of db service
+        DB_NAME: profile_service_db     # The name of the database used by the demo app
+        DB_USERNAME: profile_service     # A new created user for the demo app
+
+  secret:
+    enabled: true
+    files:
+      app-secret:
+        data:
+          DB_PASSWORD: MTIzNDU2Nzg=
+
+db:
+  applicationName: *dbApplicationName
+  namespaceOverride: *namespaceOverride
+  labels: *labels
+  deployment:
+    image:
+      repository: "postgres"
+      tag: "16.3"
+      pullPolicy: "Always"
+    replicas: 1
+    envFrom:
+      db-cm:
+        type: configmap
+        nameSuffix: postgres-cm
+      db-secret:
+        type: secret
+        nameSuffix: postgres-secret
+    initContainers:
+      - name: db-init    # using root, change permissions to not use root in main container
+        image: postgres:16.3
+        command: 
+          - 'sh'
+          - '-c'
+          - |
+            chown -R 999:999 /var/lib/postgresql/data
+        volumeMounts:
+          - name:  profile-service-db-data
+            mountPath: /var/lib/postgresql/data
+    containerSecurityContext:
+      readOnlyRootFilesystem: false
+      runAsUser: 999  # Default non-root user for the official Postgres image
+      runAsGroup: 999
+
+  persistence:
+    enabled: true
+    storageSize: 1Gi
+    mountPVC: true
+    mountPath: "/var/lib/postgresql/data"
+
+  service:
+    enabled: true
+    ports:
+    - port: 5432
+      name: http
+      protocol: TCP
+      targetPort: 5432
+
+  configMap:
+    enabled: true
+    files:
+      postgres-cm:
+        POSTGRES_DB: profile_service_db     # The name of the database used by the demo app
+        POSTGRES_USER: profile_service     # A new created user for the demo app
+
+  secret:
+    enabled: true
+    files:
+      postgres-secret:
+        data:
+          POSTGRES_PASSWORD: MTIzNDU2Nzg=
+

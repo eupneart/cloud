@@ -1,0 +1,27 @@
+app:
+  applicationName: frontend
+  namespaceOverride: ""
+  labels:
+    group: com.eupneart
+    team: eupneart
+    component: frontend
+    phase: dev
+  deployment:
+    image:
+      repository: "frontend"
+      tag: "v1.0.0"
+    replicas: 1
+    ports:
+    - containerPort: 80
+      name: http
+      protocol: TCP
+    containerSecurityContext:
+      readOnlyRootFilesystem: false
+      runAsNonRoot: false   # should be set to true for production
+
+  service:
+    enabled: true
+    type: NodePort
+    ports:
+      - port: 8080
+        targetPort: 80
