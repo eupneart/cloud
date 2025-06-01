@@ -1,0 +1,21 @@
+apiVersion: v2
+type: application
+
+name: image-service
+description: A Helm chart for image-service
+version: 0.1.0
+appVersion: "latest"
+
+dependencies:
+  - name: application
+    alias: app
+    version: 6.0.2
+    repository: https://stakater.github.io/stakater-charts
+  - name: application
+    alias: db
+    version: 6.0.2
+    repository: https://stakater.github.io/stakater-charts
+  - name: application
+    alias: minio
+    version: 6.0.2
+    repository: https://stakater.github.io/stakater-charts

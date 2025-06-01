@@ -1,0 +1,42 @@
+app:
+  applicationName: api-gateway
+  namespaceOverride: ""
+  labels:
+    group: com.eupneart
+    team: eupneart
+    component: api-gateway
+    phase: dev
+  deployment:
+    image:
+      repository: "eupneart/api-gateway"
+      tag: "latest"
+      pullPolicy: "Always"
+    replicas: 1
+    envFrom:
+      app-cm:
+        type: configmap
+        nameSuffix: app-cm
+    ports:
+    - containerPort: 80
+      name: http
+      protocol: TCP
+    containerSecurityContext:
+      runAsUser: 999
+    readinessProbe:
+      enabled: true
+      httpGet:
+        path: /actuator/health/readiness
+        port: 80
+
+  service:
+    enabled: true
+    type: NodePort
+    ports:
+      - port: 80
+        targetPort: 80
+
+  configMap:
+    enabled: true
+    files:
+      app-cm:
+        GATEWAY_PORT: "80"
