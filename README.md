@@ -9,6 +9,7 @@ It is easy to install and start with, it is lightweight, it doesn't give all the
   - [Fresh initialization](#fresh-initialization)
   - [Usuful commands](#usuful-commands)
 - [Testing new features](#testing-new-features)
+  - [Local testing](#local-testing)
   - [Injections to API gateway](#injections-to-api-gateway)
   - [Frontend usage](#frontend-usage)
 - [ArgoCD](#argocd)
@@ -60,9 +61,35 @@ kubectl exec -it <pod-name> -- /bin/sh
 ## Testing new features
 At the moment in each service we have a CI pipeline that automatically deploy in the docker registry new images at each new merge in the main branch.
 
-However to test, it is suggested to copy-paste the GitHub Action to trigger the docker registry delivery from each commit in your branch. For the moment neither versioning nor different environments are in places, so no further action is needed.
+However before merging you have to test locally first, see the next section for more information.
+
+To test instead in the cluster it is suggested to copy-paste the GitHub Action to trigger the docker registry delivery from each commit in your branch. For the moment neither versioning nor different environments are in places, so no further action is needed.
 
 To be sure that the latest image is taken, check that the service chart has `imagePullPolicy: Always` and refresh apps from ArgoCD UI or with `kubectl rollout restart deployment/<service-name>`.
+
+### Local testing
+For local testing of the cluster or some resources in the cluster [Rancher](https://rancherdesktop.io) can be used (and suggested).
+Once your local cluster is setup you can do `helm install` of whatever resource you'd like.
+
+It is raccomanded to use the override `values-local.yaml` along with the basic `values.yaml`, and update it if needed for faster local testing.
+For example:
+```
+helm upgrade -i api-gateway applications/api-gateway -f applications/api-gateway/values-local.yaml
+```
+
+To get the logs from a deployment you can use:
+```
+kubectl logs deployment/api-gateway -f
+```
+
+#### Image service
+Specifically, for the image-service you need to provide the MinIO service as nodeport and set `MINIO_EXTERNAL_URL` to `http://<node-ip>:<nodePort>`. You can override the default one in `applications/image-service/values-local.yaml`.
+
+The node ip and node port can be retrieved with the following commands:
+```
+kubectl get nodes -o wide
+kubectl get svc image-service-minio -n default -o jsonpath='{.spec.ports[0].nodePort}'
+```
 
 ### Injections to API gateway
 You can simply inject to the API Gateway with Postman or similar and using the IP adress: `http://192.168.1.200:<api-gateway-svc-port>`.
