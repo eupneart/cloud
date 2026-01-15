@@ -1,0 +1,17 @@
+app:
+  deployment:
+    image:
+      repository: "image-service"
+      tag: "local"
+      pullPolicy: "IfNotPresent"
+    resources:
+      limits:
+        memory: 512Mi
+  configMap:
+    files:
+      app-cm:
+        MINIO_EXTERNAL_URL: http://192.168.64.2:31757
+
+minio:
+  service:
+    type: NodePort
