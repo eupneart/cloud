@@ -63,6 +63,7 @@ app:
         MINIO_INTERNAL_URL: http://image-service-minio:9000
         MINIO_EXTERNAL_URL: http://files.eupneart.com
         MINIO_USERNAME: admin
+        NATS_URL: nats://nats:4222
 
   secret:
     enabled: true
