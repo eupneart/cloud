@@ -1,0 +1,10 @@
+config:
+  jetstream:
+    enabled: true
+
+jetstream:
+  enabled: true
+
+  storage:
+    enabled: true
+    size: 1Gi

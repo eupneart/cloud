@@ -168,6 +168,31 @@ kubectl -n kubernetes-dashboard port-forward svc/kubernetes-dashboard-kong-proxy
 at: `https://localhost:8443`. 
 To connect follow [this guide](https://github.com/kubernetes/dashboard/blob/master/docs/user/access-control/creating-sample-user.md). A sample user with administrative privileges will be created, but in PRD it should be changed with a proper
 
+## NATS
+To install in the cluster first we need to have the helm chart:
+```
+helm repo add nats https://nats-io.github.io/k8s/helm/charts/
+```
+At this point we can install nats with jetstrem enabled:
+```
+helm install nats nats/nats -f charts/nats/nats-values.yaml
+```
+
+To add a stream:
+```
+kubectl exec -it <nats-box-pod> -- nats stream add IMAGE_EVENTS
+```
+And to verify it:
+```
+kubectl exec -it nats-box-5c8796647b-dgtxg -- nats stream info IMAGE_EVENTS
+```
+
+To view the stream of it:
+```
+kubectl exec -it nats-box-5c8796647b-dgtxg -- nats stream view IMAGE_EVENTS
+```
+
+
 ## Troubleshooting
 ### Network errors
 It can came handy to have a pod for injection inside the cluster:
