@@ -1,0 +1,6 @@
+collector:
+  deployment:
+    image:
+      repository: "analytics-collector"
+      tag: "local"
+      pullPolicy: "IfNotPresent"

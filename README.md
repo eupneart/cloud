@@ -189,9 +189,36 @@ kubectl exec -it nats-box-5c8796647b-dgtxg -- nats stream info IMAGE_EVENTS
 
 To view the stream of it:
 ```
-kubectl exec -it nats-box-5c8796647b-dgtxg -- nats stream view IMAGE_EVENTS
+kubectl exec -it nats-box-5c8796647b-wl4k7 -- nats sub "images.*"
 ```
 
+## ClickHouse
+To install [clickhouse](https://clickhouse.com/docs/use-cases/observability/clickstack/deployment/helm), add the ClickStack Helm repository:
+```
+helm repo add clickstack https://clickhouse.github.io/ClickStack-helm-charts
+helm repo update
+```
+
+To install the ClickStack chart with default values:
+```
+helm install my-clickstack clickstack/clickstack
+```
+
+Verify the installation:
+```
+kubectl get pods -l "app.kubernetes.io/name=clickstack"
+```
+
+By forwarding `	my-clickstack-app` you can access to HyperDX UI.
+
+For prd consider using TLS as written in [here](https://clickhouse.com/docs/use-cases/observability/clickstack/deployment/helm-configuration#ingress-setup).
+
+### DB creation
+Find the pod and then run:
+```
+kubectl exec -it <pod-name> -- \
+  clickhouse-client --query "CREATE DATABASE IF NOT EXISTS analytics"
+```
 
 ## Troubleshooting
 ### Network errors

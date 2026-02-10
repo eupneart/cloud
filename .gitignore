@@ -1,2 +1,4 @@
 *.tar
 charts/dns/secret.yaml
+
+output-dir

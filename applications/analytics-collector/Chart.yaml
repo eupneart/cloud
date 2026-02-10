@@ -1,0 +1,13 @@
+apiVersion: v2
+type: application
+
+name: analytics-collector
+description: A Helm chart for analytics-collector
+version: 0.1.0
+appVersion: "latest"
+
+dependencies:
+  - name: application
+    alias: collector
+    version: 6.0.2
+    repository: https://stakater.github.io/stakater-charts

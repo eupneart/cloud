@@ -1,0 +1,82 @@
+common:
+  namespaceOverride: &namespaceOverride ""
+
+  applicationName: &applicationName analytics-collector
+
+  labels: &labels
+    group: com.eupneart
+    team: eupneart
+    component: analytics-collector
+    phase: dev
+
+collector:
+  applicationName: *applicationName
+  namespaceOverride: *namespaceOverride
+  labels: *labels
+  deployment:
+    image:
+      repository: "eupneart/analytics-collector"
+      tag: "latest"
+      pullPolicy: "IfNotPresent"
+    replicas: 1
+    revisionHistoryLimit: 1
+    envFrom:
+      collector-cm:
+        type: configmap
+        nameSuffix: app-cm
+      collector-secret:
+        type: secret
+        nameSuffix: app-secret
+    ports:
+    - name: health
+      containerPort: 8080
+      protocol: TCP
+    containerSecurityContext:
+      runAsUser: 1001
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+        - ALL
+    livenessProbe:
+      enabled: true
+      httpGet:
+        path: /health
+        port: health
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      enabled: true
+      httpGet:
+        path: /ready
+        port: health
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+
+  configMap:
+    enabled: true
+    files:
+      app-cm:
+          CLICKHOUSE_HOST: "my-clickstack-clickhouse"
+          CLICKHOUSE_DATABASE: "analytics"
+          CLICKHOUSE_PORT: "9000"
+          NATS_SERVER: "nats://nats:4222"
+          NATS_SUBJECTS: "image.*,user.*"
+          NATS_QUEUE: "analytics-collectors"
+          SERVICE_NAME: "analytics-collector"
+          LOG_LEVEL: "INFO"
+          HEALTH_CHECK_PORT: "8080"
+          BATCH_SIZE: "100"
+          BATCH_TIMEOUT_SECONDS: "5"
+  
+  secret:
+    enabled: true
+    files:
+      app-secret:
+        data:
+          CLICKHOUSE_USER: "default"
+          CLICKHOUSE_PASSWORD: ""
