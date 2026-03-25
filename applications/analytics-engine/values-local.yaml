@@ -1,0 +1,6 @@
+engine:
+  deployment:
+    image:
+      repository: "analytics-engine"
+      tag: "local"
+      pullPolicy: "IfNotPresent"

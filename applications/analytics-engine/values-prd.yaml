@@ -1,0 +1,6 @@
+namespaceOverride: "app-prd"
+
+labels:
+  phase: "prd"
+
+# TODO: potentially use RBAC, HPA, PDB

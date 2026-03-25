@@ -1,0 +1,213 @@
+common:
+  namespaceOverride: &namespaceOverride ""
+
+  applicationName: &applicationName analytics-engine
+
+  labels: &labels
+    group: com.eupneart
+    team: eupneart
+    component: analytics-engine
+    phase: dev
+
+engine:
+  applicationName: *applicationName
+  namespaceOverride: *namespaceOverride
+  labels: *labels
+  deployment:
+    image:
+      repository: "analytics-engine"
+      tag: "latest"
+      pullPolicy: "Never"
+    command: ["python3", "main.py", "service"]
+    replicas: 1
+    revisionHistoryLimit: 1
+    envFrom:
+      engine-cm:
+        type: configmap
+        nameSuffix: app-cm
+      engine-secret:
+        type: secret
+        nameSuffix: app-secret
+    ports:
+    - name: health
+      containerPort: 8080
+      protocol: TCP
+    containerSecurityContext:
+      runAsUser: 1001
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop:
+        - ALL
+    livenessProbe:
+      enabled: true
+      httpGet:
+        path: /health
+        port: health
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      enabled: true
+      httpGet:
+        path: /ready
+        port: health
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+
+  cronJob:
+    # TODO
+    enabled: false
+    jobs:
+      analytics-rebuild-daily-stats:
+        schedule: "0 0 * * *"
+        image:
+          repository: analytics-engine
+          tag: latest
+          imagePullPolicy: IfNotPresent
+        command: ["python", "main.py", "rebuild_daily_stats"]
+        additionalPodLabels:
+          job: rebuild-daily-stats
+        successfulJobsHistoryLimit: 3
+        failedJobsHistoryLimit: 3
+        concurrencyPolicy: Forbid
+        backoffLimit: 2
+        restartPolicy: OnFailure
+        envFrom:
+        - configMapRef:
+            name: analytics-engine-app-cm
+        - secretRef:
+            name: analytics-engine-app-secret
+
+      analytics-rebuild-weekly-stats:
+        schedule: "30 0 * * *"
+        image:
+          repository: "eupneart/analytics-engine"
+          tag: "latest"
+          imagePullPolicy: "Always"
+        command: ["python", "main.py", "rebuild_weekly_stats"]
+        additionalPodLabels:
+          job: rebuild-weekly-stats
+        successfulJobsHistoryLimit: 3
+        failedJobsHistoryLimit: 3
+        concurrencyPolicy: Forbid
+        backoffLimit: 2
+        restartPolicy: OnFailure
+        envFrom:
+        - configMapRef:
+            name: analytics-engine-app-cm
+        - secretRef:
+            name: analytics-engine-app-secret
+
+      analytics-recompute-streak:
+        schedule: "0 1 * * *"
+        image:
+          repository: analytics-engine
+          tag: latest
+          imagePullPolicy: IfNotPresent
+        command: ["python", "main.py", "recompute_streaks"]
+        additionalPodLabels:
+          job: recompute-streaks
+        successfulJobsHistoryLimit: 3
+        failedJobsHistoryLimit: 3
+        concurrencyPolicy: Forbid
+        backoffLimit: 2
+        restartPolicy: OnFailure
+        envFrom:
+        - configMapRef:
+            name: analytics-engine-app-cm
+        - secretRef:
+            name: analytics-engine-app-secreet
+
+      analytics-compute-monthly-stats:
+        schedule: "30 1 * * *"
+        image:
+          repository: analytics-engine
+          tag: latest
+          imagePullPolicy: IfNotPresent
+        command: ["python", "main.py", "compute_monthly_stats"]
+        additionalPodLabels:
+          job: compute-monthly-stats
+        successfulJobsHistoryLimit: 3
+        failedJobsHistoryLimit: 3
+        concurrencyPolicy: Forbid
+        backoffLimit: 2
+        restartPolicy: OnFailure
+        envFrom:
+        - configMapRef:
+            name: analytics-engine-app-cm
+        - secretRef:
+            name: analytics-engine-app-secret
+
+      analytics-compute-activity-summary:
+        schedule: "0 2 * * *"
+        image:
+          repository: analytics-engine
+          tag: latest
+          imagePullPolicy: IfNotPresent
+        command: ["python", "main.py", "compute_activity_summary"]
+        additionalPodLabels:
+          job: compute-activity-summary
+        successfulJobsHistoryLimit: 3
+        failedJobsHistoryLimit: 3
+        concurrencyPolicy: Forbid
+        backoffLimit: 2
+        restartPolicy: OnFailure
+        envFrom:
+        - configMapRef:
+            name: analytics-engine-app-cm
+        - secretRef:
+            name: analytics-engine-app-secret
+
+      analytics-tag-stats:
+        schedule: "30 2 * * *"
+        image:
+          repository: analytics-engine
+          tag: latest
+          imagePullPolicy: IfNotPresent
+        command: ["python", "main.py", "tag_stats"]
+        additionalPodLabels:
+          job: tag-stats
+        successfulJobsHistoryLimit: 3
+        failedJobsHistoryLimit: 3
+        concurrencyPolicy: Forbid
+        backoffLimit: 2
+        restartPolicy: OnFailure
+        envFrom:
+        - configMapRef:
+            name: analytics-engine-app-cm
+        - secretRef:
+            name: analytics-engine-app-secret
+
+  configMap:
+    enabled: true
+    files:
+      app-cm:
+          CLICKHOUSE_HOST: "my-clickstack-clickhouse"
+          CLICKHOUSE_DATABASE: "analytics"
+          CLICKHOUSE_PORT: "9000"
+          NATS_URL: "nats://nats:4222"
+          NATS_STREAM: "IMAGE_EVENTS"
+          NATS_SUBJECTS: "image.*"
+          NATS_QUEUE: "analytics-engine"
+          SERVICE_NAME: "analytics-engine"
+          TIMEZONE: "UTC"
+          AUTO_INIT_DB: "true"
+          HEALTH_CHECK_PORT: "8080"
+          # Logging
+          LOG_LEVEL: "INFO"
+          LOG_FORMAT: "json"
+          # Jobs
+          JOB_RETRY_ATTEMPTS: "3"
+          JOB_RETRY_DELAY: "5"
+  
+  secret:
+    enabled: true
+    files:
+      app-secret:
+        data:
+          CLICKHOUSE_USER: "default"
+          CLICKHOUSE_PASSWORD: ""

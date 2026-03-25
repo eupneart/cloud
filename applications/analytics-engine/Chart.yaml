@@ -1,0 +1,13 @@
+apiVersion: v2
+type: application
+
+name: analytics-engine
+description: A Helm chart for analytics-engine
+version: 0.1.0
+appVersion: "latest"
+
+dependencies:
+  - name: application
+    alias: engine
+    version: 6.0.2
+    repository: https://stakater.github.io/stakater-charts
