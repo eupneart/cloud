@@ -180,16 +180,34 @@ helm install nats nats/nats -f charts/nats/nats-values.yaml
 
 To add a stream:
 ```
-kubectl exec -it <nats-box-pod> -- nats stream add IMAGE_EVENTS
+kubectl exec -it <nats-box-pod> -- nats stream add IMAGE_EVENTS --subjects "image.>"
 ```
 And to verify it:
 ```
-kubectl exec -it nats-box-5c8796647b-dgtxg -- nats stream info IMAGE_EVENTS
+nats stream info IMAGE_EVENTS
+```
+Or to list the streams:
+```
+nats stream list
 ```
 
-To view the stream of it:
+To view the events in a stream:
 ```
-kubectl exec -it nats-box-5c8796647b-wl4k7 -- nats sub "images.*"
+nats stream view IMAGE_EVENTS
+```
+
+To subscribe to an event:
+```
+nats sub "image.*"
+```
+
+To purge the stream:
+```
+nats stream purge PROFILE_EVENTS
+```
+To delete a stream:
+```
+nats stream rm PROFILE_EVENTS
 ```
 
 ## ClickHouse
@@ -219,6 +237,22 @@ Find the pod and then run:
 kubectl exec -it <pod-name> -- \
   clickhouse-client --query "CREATE DATABASE IF NOT EXISTS analytics"
 ```
+
+### DB useful commands
+```
+clickhouse-client
+
+USE analytics;
+
+SHOW TABLES;
+
+SELECT * FROM <table> LIMIT 10;
+SELECT count() FROM <table>;
+
+DROP DATABASE analytics;
+CREATE DATABASE analytics;
+```
+
 
 ## Troubleshooting
 ### Network errors
