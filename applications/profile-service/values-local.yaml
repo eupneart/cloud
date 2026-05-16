@@ -1,0 +1,9 @@
+app:
+  deployment:
+    image:
+      repository: "profile-service"
+      tag: "local"
+      pullPolicy: "IfNotPresent"
+    resources:
+      limits:
+        memory: 512Mi
